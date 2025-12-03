@@ -1,0 +1,6 @@
+Các bước khởi tạo trang web, server, front-end, back-end
+Train cách dùng admin
+fix 1 số lỗi cơ bản
+Chỉ ví trị từng element
+Cách train chatbot
+
