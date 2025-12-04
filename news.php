@@ -31,8 +31,9 @@
 <div class="card">
 
   <div class="card-header d-flex justify-content-between align-items-center">
-    <h3 class="card-title">Quản lý tin tức</h3>
+    <h3 class="card-title">Quản lý tin tức (Bài đăng)</h3>
   </div>
+
 
   <div class="card-body">
     <table class="table table-bordered table-striped">
@@ -85,10 +86,13 @@
             </a>
           </li>
         <?php endfor; ?>
-
       </ul>
     </nav>
-
+  </div>
+</div>
+<div class="card">
+  <div class="card-body">
+    <button class="btn btn-danger m-2" onclick="deleteAllNews()">Reset tất cả tin tức</button></br>
   </div>
 </div>
 
@@ -115,6 +119,22 @@ function deleteNews(id) {
   $.post(
     "./process/process.php",
     { action: "delete_news", id: id },
+    function(res) {
+      if (res.status === "success") {
+        toastr.success(res.message);
+        setTimeout(() => location.reload(), 700);
+      } else {
+        toastr.error(res.message);
+      }
+    }, "json"
+  );
+}
+function deleteAllNews() {
+  if (!confirm("Xoá tất cả bài viết?")) return;
+
+  $.post(
+    "./process/process.php",
+    { action: "delete_all_news" },
     function(res) {
       if (res.status === "success") {
         toastr.success(res.message);

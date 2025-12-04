@@ -164,7 +164,16 @@
               </p>
             </a>
           </li>
-          
+
+          <li class="nav-item">
+            <a href="/news" class="nav-link">
+              <i class="nav-icon far fa-newspaper"></i>
+              <p>
+                Quản lý tin tức (Bài đăng)
+              </p>
+            </a>
+          </li>
+
           <li class="nav-item">
             <a href="/mission_list" class="nav-link">
               <i class="nav-icon fas fa-list"></i>
@@ -188,15 +197,6 @@
               <i class="nav-icon fas fa-map"></i>
               <p>
                 Quản lí Bản đồ số
-              </p>
-            </a>
-          </li>
-
-          <li class="nav-item">
-            <a href="/news" class="nav-link">
-              <i class="nav-icon far fa-newspaper"></i>
-              <p>
-                Quản lý tin tức
               </p>
             </a>
           </li>

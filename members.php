@@ -115,7 +115,8 @@ $members = $stmt->fetchAll();
 
 <div class="card">
   <div class="card-body">
-    <button class="btn btn-danger" onclick="deleteAllMembers()">Xóa hết tất cả đoàn viên</button>
+    <button class="btn btn-danger m-2" onclick="deleteAllMembers()">Xóa hết tất cả đoàn viên</button></br>
+    <button class="btn btn-danger m-2" onclick="resetPoints()">Reset điểm</button>
   </div>
 </div>
 
@@ -236,6 +237,32 @@ function deleteAllMembers() {
         data: {
             action: "delete_all_members",
             confirm: "yes"
+        },
+        dataType: "json",
+        success: function(res) {
+            if (res.status === "success") {
+                toastr.success(res.message);
+                setTimeout(() => location.reload(), 1000);
+            } else {
+                toastr.error(res.message);
+            }
+        },
+        error: function() {
+            toastr.error("Lỗi server!");
+        }
+    });
+}
+
+function resetPoints() {
+    if (!confirm("Bạn có chắc muốn reset điểm của tất cả đoàn viên?")) {
+        return;
+    }
+
+    $.ajax({
+        url: "./process/process.php",
+        type: "POST",
+        data: {
+            action: "reset_points"
         },
         dataType: "json",
         success: function(res) {

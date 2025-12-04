@@ -14,6 +14,8 @@ if ($_SERVER["REQUEST_METHOD"] !== "POST") {
 
 $action = $_POST["action"] ?? null;
 
+/*-------------------------------LOGIN.PHP-------------------------------*/
+
 /*
 |--------------------------------------------------------------------------
 | LOGIN (AJAX)
@@ -53,6 +55,8 @@ if ($action === "login") {
         alert("error", "Lỗi server: " . $e->getMessage());
     }
 }
+
+/*-------------------------------MEMBERS.PHP-------------------------------*/
 
 /*
 |--------------------------------------------------------------------------
@@ -209,6 +213,38 @@ if ($action === "delete_all_members") {
     }
 }
 
+/*
+|--------------------------------------------------------------------------
+| RESET POINTS FOR ALL MEMBERS
+|--------------------------------------------------------------------------
+*/
+if ($action === "reset_points") {
+
+    try {
+        // Lấy tất cả nhiệm vụ
+        $missions = $pg->query('SELECT id FROM "Missions"')->fetchAll(PDO::FETCH_ASSOC);
+
+        // Tạo câu lệnh cập nhật điểm
+        $setParts = [];
+        $missionId=1;
+        foreach ($missions as $mission) {
+            $setParts[] = '"points_' . $missionId . '" = 0';
+            $missionId++;
+        }
+        $setParts[] = '"points" = 0'; // Reset tổng điểm
+        $setClause = implode(", ", $setParts);
+
+        // Cập nhật tất cả người dùng
+        $pg->query('UPDATE "User" SET ' . $setClause);
+
+        alert("success", "Đã reset điểm cho tất cả đoàn viên!");
+    } catch (Exception $e) {
+        alert("error", "Lỗi reset điểm: " . $e->getMessage());
+    }
+}
+
+/*-------------------------------MISSIONS_LIST.PHP-------------------------------*/
+
 /* 
 |--------------------------------------------------------------------------
 |   EDIT MISSION
@@ -247,7 +283,7 @@ if ($action === "edit_mission") {
 
 /*
 |--------------------------------------------------------------------------
-|   RESET MISSION SUBMISSIONS
+|   RESET MISSION
 |--------------------------------------------------------------------------
 */
 if ($action === "reset_mission") {
@@ -263,7 +299,7 @@ if ($action === "reset_mission") {
         // $stmt->execute([$id]);
         // $pg->commit();
         $pg->query('DELETE FROM "MissionSubmission" WHERE "missionId" = '.$id);
-        $pg->query('UPDATE "Missions" SET "joined" = 0, "status" = \'close\' WHERE "id" = '.$id);
+        $pg->query('UPDATE "Missions" SET "joined" = 0, "status" = \'close\', "missionName" = \'(Chưa đặt tên)\' WHERE "id" = '.$id);
         alert("success", "Đã reset nhiệm vụ!");
     } catch (Exception $e) {
         $pg->rollBack();
@@ -271,8 +307,10 @@ if ($action === "reset_mission") {
     }
 }
 
+/*-------------------------------MISSIONS_APPROVAL.PHP-------------------------------*/
+
 // ===============================================
-// DUYỆT THƯỜNG
+// APPROVE NORMAL SUBMISSION
 // ===============================================
 if ($action === "approve_submission_normal") {
 
@@ -306,7 +344,7 @@ if ($action === "approve_submission_normal") {
 
 
 // ===============================================
-// DUYỆT + ĐĂNG NEWS
+// APPROVE + POST NEWS
 // ===============================================
 if ($action === "approve_submission_news") {
 
@@ -354,6 +392,9 @@ if ($action === "approve_submission_news") {
         alert("error", "Lỗi: ".$e->getMessage());
     }
 }
+
+/*-------------------------------CHATBOT_INSTRUCTIONS.PHP-------------------------------*/
+
 /*
 |--------------------------------------------------------------------------
 | SAVE INSTRUCTION TEXT
@@ -375,6 +416,8 @@ if ($action === "save_instruction") {
         alert("error", "Lỗi khi lưu file: " . $e->getMessage());
     }
 }
+
+/*-------------------------------CHATBOT_KNOWLEDGES.PHP-------------------------------*/
 
 /*
 |--------------------------------------------------------------------------
@@ -403,6 +446,8 @@ if ($action === "test_pg") {
     alert("success", "PG OK!");
 }
 
+/*-------------------------------NEWS.PHP-------------------------------*/
+
 /*
 |--------------------------------------------------------------------
 | DELETE NEWS
@@ -424,6 +469,20 @@ if ($action === "delete_news") {
         alert("error", "Lỗi xóa: " . $e->getMessage());
     }
 }
+
+if ($action === "delete_all_news") {
+
+    try {
+        $pg->query('DELETE FROM "NewsLike"');
+        $pg->query('DELETE FROM "NewsComment"');
+        $pg->query('DELETE FROM "News"');
+        alert("success", "Đã xóa hết tất cả tin tức!");
+    } catch (Exception $e) {
+        alert("error", "Lỗi xóa: " . $e->getMessage());
+    }
+}
+
+/*-------------------------------MAIN_NEWS.PHP-------------------------------*/
 
 /*
 |--------------------------------------------------------------------------
@@ -450,7 +509,8 @@ if ($action === "add_main_news") {
     }
 }
 
-/*|--------------------------------------------------------------------------
+/*
+|--------------------------------------------------------------------------
 | EDIT MAIN NEWS
 |--------------------------------------------------------------------------
 */
@@ -474,7 +534,8 @@ if ($action === "edit_main_news") {
     }
 }
 
-/*|--------------------------------------------------------------------------
+/*
+|--------------------------------------------------------------------------
 | DELETE MAIN NEWS
 |--------------------------------------------------------------------------
 */
@@ -489,6 +550,8 @@ if ($action === "delete_main_news") {
         alert("error", $e->getMessage());
     }
 }
+
+/*-------------------------------DIGIMAP.PHP-------------------------------*/
 
 /*
 |---------------------------------------------------------------------
@@ -561,6 +624,7 @@ if ($action === "delete_digi") {
     }
 }
 
+/*-------------------------------ADMIN_ACCOUNTS.PHP-------------------------------*/
 /*
 |--------------------------------------------------------------------
 | ADD ADMIN

@@ -1,5 +1,5 @@
 <?php
-$pg_host = "binhlongserver.duckdns.org";
+$pg_host = "14.161.126.117";
 $pg_port = "5432";
 $pg_db   = "nktn";
 $pg_user = "admin";
