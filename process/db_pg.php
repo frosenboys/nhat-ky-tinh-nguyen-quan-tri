@@ -1,12 +1,10 @@
 <?php
-$pg_host = "14.161.126.117";
-$pg_port = "5432";
-$pg_db   = "nktn";
-$pg_user = "admin";
-$pg_pass = "thptbinhlong123";
+$pg_host = "";
+$pg_port = "";
+$pg_db   = "";
+$pg_user = "";
+$pg_pass = "";
 
-// KHÔNG dùng sslmode=require nếu server không bật SSL
-// Nếu chưa bật SSL thì để sslmode=disable
 $pg_dsn = "pgsql:host=$pg_host;port=$pg_port;dbname=$pg_db;sslmode=disable";
 
 try {
