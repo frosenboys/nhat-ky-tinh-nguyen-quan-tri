@@ -128,7 +128,6 @@ if ($action === "reset_password") {
 |------------------------------------------------------------------
 */
 if ($action === "import_user_excel") {
-
     require_once __DIR__ . "/SimpleXLSX.php";
 
     if (!isset($_FILES["file"])) {
@@ -136,7 +135,6 @@ if ($action === "import_user_excel") {
     }
 
     $filePath = $_FILES["file"]["tmp_name"];
-
     if (!$xlsx = SimpleXLSX::parse($filePath)) {
         alert("error", "Không đọc được file Excel!");
     }
@@ -145,44 +143,58 @@ if ($action === "import_user_excel") {
         $pg->beginTransaction();
 
         $rows = $xlsx->rows();
+        
+        // TỐI ƯU 1: Hash password MỘT LẦN DUY NHẤT bên ngoài vòng lặp
+        $defaultPassHash = password_hash("123456", PASSWORD_BCRYPT);
+        
+        $insertValues = [];
         $count = 0;
 
         foreach ($rows as $i => $r) {
-
             // Bỏ header
             if ($i === 0) continue;
 
-            // Bỏ dòng trống hoặc thiếu dữ liệu
+            // Bỏ dòng trống
             if (!isset($r[0]) || trim($r[0]) === "") continue;
 
             $studentId  = trim($r[0]);
             $fullName   = trim($r[1] ?? "");
             $unionGroup = trim($r[2] ?? "");
-            $position   = trim($r[3]);
+            
+            // --- SỬA LỖI TẠI ĐÂY ---
+            // Dùng ?? "" để tránh lỗi Undefined array key 3 nếu dòng Excel bị thiếu cột
+            $position   = trim($r[3] ?? ""); 
+            
             if ($position === "") $position = "Đoàn viên";
 
             if ($fullName === "") continue;
 
-            $hashed = password_hash("123456", PASSWORD_BCRYPT);
+            $safeId         = pg_escape_string($studentId);
+            $safeFullName   = pg_escape_string($fullName);
+            $safeUnionGroup = pg_escape_string($unionGroup);
+            $safePosition   = pg_escape_string($position);
 
-            // Query thuần
+            $insertValues[] = "('$safeId', '$safeFullName', '$safeUnionGroup', '$safePosition', '$defaultPassHash')";
+            $count++;
+        }
+
+        // TỐI ƯU 2: Batch Insert (Chia nhỏ để insert)
+        // Nếu 1300 dòng insert 1 lần có thể quá dài, ta chia thành các gói nhỏ (ví dụ 500 dòng/lần)
+        $chunks = array_chunk($insertValues, 500);
+
+        foreach ($chunks as $chunk) {
+            $valuesString = implode(", ", $chunk);
+            
             $sql = '
-                INSERT INTO "User" ("studentId","fullName","unionGroup","position","password")
-                VALUES (
-                    \''.$studentId.'\',
-                    \''.$fullName.'\',
-                    \''.$unionGroup.'\',
-                    \''.$position.'\',
-                    \''.$hashed.'\'
-                )
+                INSERT INTO "User" ("studentId", "fullName", "unionGroup", "position", "password")
+                VALUES ' . $valuesString . '
                 ON CONFLICT ("studentId") DO UPDATE SET
                     "fullName"   = EXCLUDED."fullName",
                     "unionGroup" = EXCLUDED."unionGroup",
                     "position"   = EXCLUDED."position";
             ';
-
+            
             $pg->query($sql);
-            $count++;
         }
 
         $pg->commit();

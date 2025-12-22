@@ -92,15 +92,49 @@ $members = $stmt->fetchAll();
 
     <!-- PAGINATION -->
     <div class="mt-3">
-      <ul class="pagination">
-        <?php for ($i = 1; $i <= $totalPages; $i++): ?>
-          <li class="page-item <?= ($i == $page ? 'active' : '') ?>">
-            <a class="page-link"
-               href="?page=<?= $i ?>&search=<?= urlencode($search) ?>">
-              <?= $i ?>
-            </a>
-          </li>
-        <?php endfor; ?>
+      <ul class="pagination justify-content-center"> <li class="page-item <?= ($page <= 1 ? 'disabled' : '') ?>">
+            <a class="page-link" href="?page=<?= max(1, $page - 1) ?>&search=<?= urlencode($search) ?>">«</a>
+        </li>
+
+        <?php
+        // Cấu hình số lượng trang hiển thị xung quanh trang hiện tại
+        $delta = 2; // Ví dụ: đang ở trang 10 thì hiện 8,9,10,11,12
+        
+        // Luôn hiển thị trang 1
+        $range = array(1);
+
+        // Tính toán khoảng giữa cần hiển thị
+        for ($i = max(2, $page - $delta); $i <= min($totalPages - 1, $page + $delta); $i++) {
+            $range[] = $i;
+        }
+
+        // Luôn hiển thị trang cuối (nếu tổng trang > 1)
+        if ($totalPages > 1) {
+            $range[] = $totalPages;
+        }
+
+        // Logic hiển thị dấu "..."
+        $prev = 0;
+        foreach ($range as $i): 
+            // Nếu khoảng cách giữa 2 trang trong danh sách hiển thị lớn hơn 1, in ra dấu "..."
+            if ($prev > 0 && $i - $prev > 1): ?>
+                <li class="page-item disabled"><span class="page-link">...</span></li>
+            <?php endif; 
+            
+            $prev = $i; // Cập nhật trang trước đó
+            ?>
+
+            <li class="page-item <?= ($i == $page ? 'active' : '') ?>">
+                <a class="page-link" href="?page=<?= $i ?>&search=<?= urlencode($search) ?>">
+                    <?= $i ?>
+                </a>
+            </li>
+        <?php endforeach; ?>
+
+        <li class="page-item <?= ($page >= $totalPages ? 'disabled' : '') ?>">
+            <a class="page-link" href="?page=<?= min($totalPages, $page + 1) ?>&search=<?= urlencode($search) ?>">»</a>
+        </li>
+
       </ul>
     </div>
 
