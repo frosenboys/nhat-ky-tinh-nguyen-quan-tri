@@ -143,12 +143,63 @@ $members = $stmt->fetchAll();
 
 <div class="card">
   <div class="card-body">
-    <a href="/import_user" class="btn btn-success"><i class="fa fa-file-excel mx-2"></i>Import đoàn viên từ file XLSX</a>
+    <a href="/import_user" class="btn btn-success m-2"><i class="fa fa-file-excel mx-2"></i>Import từ Excel</a>
+    <button class="btn btn-info m-2" data-toggle="modal" data-target="#createDemoModal">
+        <i class="fa fa-user-plus mx-2"></i>Thêm tài khoản Demo
+    </button>
+  </div>
+</div>
+
+<div class="modal fade" id="createDemoModal">
+  <div class="modal-dialog">
+    <form id="createDemoForm" class="modal-content">
+
+      <div class="modal-header bg-info text-white">
+        <h4 class="modal-title">Tạo tài khoản Demo</h4>
+        <button type="button" class="close" data-dismiss="modal">×</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="alert alert-warning">
+            <i class="fas fa-info-circle"></i> Mật khẩu mặc định sẽ là: <b>123456</b>
+        </div>
+
+        <div class="form-group">
+          <label>Mã Đoàn viên (Student ID) <span class="text-danger">*</span></label>
+          <input type="text" class="form-control" name="studentId" placeholder="VD: 00000001" required>
+        </div>
+
+        <div class="form-group">
+          <label>Họ tên <span class="text-danger">*</span></label>
+          <input type="text" class="form-control" name="fullName" placeholder="VD: Đề Văn Mô" required>
+        </div>
+
+        <div class="form-group">
+          <label>Chi đoàn</label>
+          <input type="text" class="form-control" name="unionGroup" placeholder="VD: 12A1">
+        </div>
+
+        <div class="form-group">
+          <label>Chức vụ</label>
+          <select class="form-control" name="position">
+              <option value="Đoàn viên">Đoàn viên</option>
+              <option value="Bí thư">Bí thư</option>
+              <option value="Lớp trưởng">Lớp trưởng</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Hủy</button>
+        <button type="submit" class="btn btn-info">Tạo tài khoản</button>
+      </div>
+
+    </form>
   </div>
 </div>
 
 <div class="card">
-  <div class="card-body">
+  <div class="card-body d-flex">
     <button class="btn btn-danger m-2" onclick="deleteAllMembers()">Xóa hết tất cả đoàn viên</button></br>
     <button class="btn btn-danger m-2" onclick="resetPoints()">Reset điểm</button>
   </div>
@@ -168,11 +219,15 @@ $members = $stmt->fetchAll();
 
       <div class="modal-body">
 
-        <input type="hidden" id="edit-id" name="studentId">
+        <div class="form-group">
+          <label>Mã Đoàn viên <small class="text-muted">(Không thể thay đổi)</small></label>
+          <input type="text" class="form-control" id="display-id" readonly 
+                 style="background-color: #e9ecef; cursor: not-allowed;" name="studentId">
+        </div>
 
         <div class="form-group">
           <label>Họ tên</label>
-          <input type="text" class="form-control" id="edit-name" name="fullName">
+          <input type="text" class="form-control" id="edit-name" name="fullName" required>
         </div>
 
         <div class="form-group">
@@ -185,25 +240,39 @@ $members = $stmt->fetchAll();
           <input type="text" class="form-control" id="edit-position" name="position">
         </div>
 
-        <button type="button" onclick="resetPassword()" class="btn btn-warning btn-block mt-3">
-          <i class="fa fa-key"></i> Reset mật khẩu
-        </button>
+        <hr>
+        
+        <label class="text-muted small">Công cụ quản trị:</label>
+        <div class="row">
+            <div class="col-6">
+                <button type="button" onclick="resetPassword()" class="btn btn-warning btn-block">
+                  <i class="fa fa-key"></i> Reset Pass
+                </button>
+            </div>
+            <div class="col-6">
+                <button type="button" onclick="deleteSingleMember()" class="btn btn-danger btn-block">
+                  <i class="fa fa-trash"></i> Xóa User
+                </button>
+            </div>
+        </div>
 
       </div>
 
       <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Hủy</button>
         <button class="btn btn-primary">Lưu thay đổi</button>
       </div>
 
     </form>
   </div>
-</div>
+</div>  
 
 
 <script>
 var modal_id;
 function fillEditForm(m) {
   modal_id = m.studentId;
+  $("#display-id").val(m.studentId);
   $("#edit-name").val(m.fullName);
   $("#edit-group").val(m.unionGroup);
   $("#edit-position").val(m.position);
@@ -211,7 +280,6 @@ function fillEditForm(m) {
 
 $("#editMemberForm").submit(function(e) {
   e.preventDefault();
-
   $.ajax({
     url: "./process/process.php",
     type: "POST",
@@ -220,43 +288,60 @@ $("#editMemberForm").submit(function(e) {
     success: function(res) {
       if (res.status === "success") {
         toastr.success(res.message);
+        $("#editMemberModal").modal('hide');
         setTimeout(() => location.reload(), 1000);
       } else {
         toastr.error(res.message);
       }
+    },
+    error: function() {
+        toastr.error("Lỗi kết nối server!");
     }
   });
 });
 
 function resetPassword() {
     let id = modal_id;
+    if (!id) { toastr.error("Không tìm thấy ID!"); return; }
 
-    if (!id) {
-        toastr.error("Không tìm thấy ID!");
-        return;
-    }
-
-    if (!confirm("Bạn có chắc muốn reset mật khẩu của đoàn viên này về \"123456\" ?")) {
-        return;
-    }
+    if (!confirm("Reset mật khẩu về '123456'?")) return;
 
     $.ajax({
         url: "./process/process.php",
         type: "POST",
-        data: {
-            action: "reset_password",
-            id: id
-        },
+        data: { action: "reset_password", id: id },
+        success: function(res) {
+            // Giả sử server trả về JSON, parse nếu cần
+            if(typeof res === 'string') res = JSON.parse(res);
+            
+            if (res.status === "success") toastr.success(res.message);
+            else toastr.error(res.message);
+        }
+    });
+}
+
+function deleteSingleMember() {
+    let id = $("#display-id").val();
+    let name = $("#edit-name").val();
+
+    if (!id) { toastr.error("Lỗi ID!"); return; }
+
+    if (!confirm("CẢNH BÁO: Xóa vĩnh viễn thành viên: " + name + " (" + id + ")?")) return;
+
+    $.ajax({
+        url: "./process/process.php",
+        type: "POST",
+        data: { action: "delete_single_member", id: id },
+        dataType: "json",
         success: function(res) {
             if (res.status === "success") {
                 toastr.success(res.message);
+                setTimeout(() => location.reload(), 1000);
             } else {
                 toastr.error(res.message);
             }
         },
-        error: function() {
-            toastr.error("Lỗi server!");
-        }
+        error: function() { toastr.error("Lỗi server!"); }
     });
 }
 
@@ -312,4 +397,28 @@ function resetPoints() {
         }
     });
 }
+
+$("#createDemoForm").submit(function(e) {
+  e.preventDefault();
+
+  $.ajax({
+    url: "./process/process.php",
+    type: "POST",
+    data: $(this).serialize() + "&action=create_demo_account",
+    dataType: "json",
+    success: function(res) {
+      if (res.status === "success") {
+        toastr.success(res.message);
+        $("#createDemoModal").modal('hide');
+        $("#createDemoForm")[0].reset(); // Xóa trắng form
+        setTimeout(() => location.reload(), 1000);
+      } else {
+        toastr.error(res.message);
+      }
+    },
+    error: function() {
+      toastr.error("Lỗi kết nối server!");
+    }
+  });
+});
 </script>

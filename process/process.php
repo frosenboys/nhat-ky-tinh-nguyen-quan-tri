@@ -60,38 +60,110 @@ if ($action === "login") {
 
 /*
 |--------------------------------------------------------------------------
+| CREATE DEMO MEMBER
+|--------------------------------------------------------------------------
+*/
+if ($action === "create_demo_account") {
+    $studentId  = trim($_POST['studentId'] ?? "");
+    $fullName   = trim($_POST['fullName'] ?? "");
+    $unionGroup = trim($_POST['unionGroup'] ?? "");
+    $position   = trim($_POST['position'] ?? "Đoàn viên");
+
+    $check = $pg->prepare('SELECT COUNT(*) FROM "User" WHERE "studentId" = :id');
+    $check->execute([":id" => $studentId]);
+    if ($check->fetchColumn() > 0) {
+        alert("error", "Mã Đoàn viên này đã tồn tại!");
+    }
+
+    // Hash mật khẩu mặc định 123456
+    $defaultPass = password_hash("123456", PASSWORD_BCRYPT);
+
+    try {
+        $sql = 'INSERT INTO "User" ("studentId", "fullName", "unionGroup", "position", "password") 
+                VALUES (:id, :name, :group, :pos, :pass)';
+        
+        $stmt = $pg->prepare($sql);
+        $stmt->execute([
+            ":id"    => $studentId,
+            ":name"  => $fullName,
+            ":group" => $unionGroup,
+            ":pos"   => $position,
+            ":pass"  => $defaultPass
+        ]);
+
+        alert("success", "Đã tạo tài khoản demo: $fullName ($studentId)");
+    } catch (Exception $e) {
+        alert("error", "Lỗi SQL: " . $e->getMessage());
+    }
+}
+
+/*
+|--------------------------------------------------------------------------
 | UPDATE MEMBER
 |--------------------------------------------------------------------------
 */
 if ($action === "update_member") {
 
-    $id         = $_POST["studentId"] ?? "";
-    $name       = trim($_POST["fullName"] ?? "");
-    $group      = trim($_POST["unionGroup"] ?? "");
-    $position   = trim($_POST["position"] ?? "");
+    // Thêm trim() cho ID để tránh lỗi dư khoảng trắng
+    $id       = trim($_POST["studentId"] ?? "");
+    $name     = trim($_POST["fullName"] ?? "");
+    $group    = trim($_POST["unionGroup"] ?? "");
+    $position = trim($_POST["position"] ?? "");
 
-    if ($name === "" || $group === "" || $position === "") {
-        alert("error", "Vui lòng nhập đầy đủ họ thông tin!");
+    // Validate dữ liệu
+    if ($id === "") {
+        alert("error", "Lỗi: Không tìm thấy ID thành viên (Vui lòng kiểm tra lại ô input ID)!");
+    }
+
+    if ($name === "") {
+        alert("error", "Vui lòng nhập họ tên!");
     }
 
     try {
-        $stmt = $pg->prepare('UPDATE "User"
-                              SET "fullName" = :name,
-                                  "unionGroup" = :group,
-                                  "position" = :position
-                              WHERE "studentId" = :id');
+        // Query Update
+        $sql = 'UPDATE "User" 
+                SET "fullName"   = :name,
+                    "unionGroup" = :group,
+                    "position"   = :position
+                WHERE "studentId" = :id';
 
+        $stmt = $pg->prepare($sql);
+        
         $stmt->execute([
-            ":name" => $name,
-            ":group" => $group,
+            ":name"     => $name,
+            ":group"    => $group,
             ":position" => $position,
-            ":id" => $id
+            ":id"       => $id
         ]);
+        
+        alert("success", "Cập nhật thông tin thành công!");
 
-        alert("success", "Cập nhật thành công!");
-    } 
-    catch (Exception $e) {
-        alert("error", "Lỗi: " . $e->getMessage());
+    } catch (Exception $e) {
+        alert("error", "Lỗi hệ thống: " . $e->getMessage());
+    }
+}
+
+/*
+|--------------------------------------------------------------------------
+| DELETE MEMBER
+|--------------------------------------------------------------------------
+*/
+if ($action === "delete_single_member") {
+
+    $id = $_POST["id"] ?? null;
+
+    try {
+        $stmt = $pg->prepare('DELETE FROM "User" WHERE "studentId" = ?');
+        $stmt->execute([$id]);
+
+        if ($stmt->rowCount() === 0) {
+            alert("error", "Không tìm thấy đoàn viên!");
+        }
+
+        alert("success", "Đã xóa đoàn viên!");
+
+    } catch (Exception $e) {
+        alert("error", "Lỗi xóa đoàn viên: " . $e->getMessage());
     }
 }
 /*
@@ -143,26 +215,20 @@ if ($action === "import_user_excel") {
         $pg->beginTransaction();
 
         $rows = $xlsx->rows();
-        
-        // TỐI ƯU 1: Hash password MỘT LẦN DUY NHẤT bên ngoài vòng lặp
         $defaultPassHash = password_hash("123456", PASSWORD_BCRYPT);
         
         $insertValues = [];
         $count = 0;
 
         foreach ($rows as $i => $r) {
-            // Bỏ header
             if ($i === 0) continue;
 
-            // Bỏ dòng trống
             if (!isset($r[0]) || trim($r[0]) === "") continue;
 
             $studentId  = trim($r[0]);
             $fullName   = trim($r[1] ?? "");
             $unionGroup = trim($r[2] ?? "");
             
-            // --- SỬA LỖI TẠI ĐÂY ---
-            // Dùng ?? "" để tránh lỗi Undefined array key 3 nếu dòng Excel bị thiếu cột
             $position   = trim($r[3] ?? ""); 
             
             if ($position === "") $position = "Đoàn viên";
@@ -178,8 +244,6 @@ if ($action === "import_user_excel") {
             $count++;
         }
 
-        // TỐI ƯU 2: Batch Insert (Chia nhỏ để insert)
-        // Nếu 1300 dòng insert 1 lần có thể quá dài, ta chia thành các gói nhỏ (ví dụ 500 dòng/lần)
         $chunks = array_chunk($insertValues, 500);
 
         foreach ($chunks as $chunk) {
@@ -402,6 +466,21 @@ if ($action === "approve_submission_news") {
 
     } catch (Exception $e) {
         alert("error", "Lỗi: ".$e->getMessage());
+    }
+}
+
+// ===============================================
+// DELETE SUBMISSION
+// ===============================================
+if ($action === "delete_submission") {
+
+    $id = $_POST["id"];
+
+    try {
+        $pg->query('DELETE FROM "MissionSubmission" WHERE id = '.$id);
+        alert("success", "Đã xóa submission!");
+    } catch (Exception $e) {
+        alert("error", "Lỗi xóa: " . $e->getMessage());
     }
 }
 
