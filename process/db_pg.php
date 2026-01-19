@@ -1,9 +1,9 @@
 <?php
-$pg_host = "";
-$pg_port = "";
-$pg_db   = "";
-$pg_user = "";
-$pg_pass = "";
+$pg_host = "14.227.208.230";
+$pg_port = "5432";
+$pg_db   = "nktn";
+$pg_user = "admin";
+$pg_pass = "thptbinhlong123";
 
 // KHÔNG dùng sslmode=require nếu server không bật SSL
 // Nếu chưa bật SSL thì để sslmode=disable
